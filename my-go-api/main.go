@@ -9,7 +9,6 @@ import (
 func main() {
 	router := gin.Default()
 
-	// Rotas para usuários
 	router.GET("/users", handlers.ShowUsers)
 	router.POST("/users", handlers.CreateUser)
 

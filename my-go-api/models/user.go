@@ -1,7 +1,6 @@
 package models
 
-// User representa a estrutura de um usuário.
 type User struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Name  string `json:"name" validate:"required,min=2,max=50"`
+	Email string `json:"email" validate:"required,email"`
 }

@@ -1,30 +1,62 @@
 package handlers
 
 import (
-	"net/http" // Importe para usar http.Status*
+	"net/http"
 
-	"my-go-api/models" // Importa o pacote models
+	"my-go-api/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
-// users simula um "banco de dados" em memória
 var users = []models.User{
 	{Name: "Enzo Kasma", Email: "enzokasma@gmail.com"},
 }
 
-// ShowUsers retorna todos os usuários.
+// Cria uma instância do validador
+var validate = validator.New()
+
 func ShowUsers(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, users)
 }
 
-// CreateUser cria um novo usuário.
 func CreateUser(ctx *gin.Context) {
 	newUser := models.User{}
 	if err := ctx.ShouldBindJSON(&newUser); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload", "details": err.Error()})
 		return
 	}
+
+	// Executa a validação na struct newUser
+	if err := validate.Struct(newUser); err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		errorsResponse := make(map[string]string)
+		for _, fieldErr := range validationErrors {
+			switch fieldErr.Tag() {
+			case "required":
+				errorsResponse[fieldErr.Field()] = fieldErr.Field() + " é obrigatório."
+			case "min":
+				errorsResponse[fieldErr.Field()] = fieldErr.Field() + " deve ter no mínimo " + fieldErr.Param() + " caracteres."
+			case "max":
+				errorsResponse[fieldErr.Field()] = fieldErr.Field() + " deve ter no máximo " + fieldErr.Param() + " caracteres."
+			case "email":
+				errorsResponse[fieldErr.Field()] = fieldErr.Field() + " deve ser um endereço de e-mail válido."
+			default:
+				errorsResponse[fieldErr.Field()] = "Erro de validação para " + fieldErr.Field()
+			}
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": errorsResponse})
+		return
+	}
+
+	// Verifica se o email já existe
+	for _, user := range users {
+		if user.Email == newUser.Email {
+			ctx.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+			return
+		}
+	}
+
 	users = append(users, newUser)
 	ctx.JSON(http.StatusCreated, newUser)
 }
