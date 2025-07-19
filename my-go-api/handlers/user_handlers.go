@@ -1,16 +1,33 @@
 package handlers
 
 import (
-	"net/http"
-
 	"my-go-api/models"
+	"my-go-api/utils"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
-var users = []models.User{
-	{Name: "Enzo Kasma", Email: "enzokasma@gmail.com"},
+var users = []models.User{}
+
+var nextUserID int = 1
+
+func init() {
+	hashedPasswordEnzo, _ := utils.HashPassword("senha123")
+	hashedPasswordAdmin, _ := utils.HashPassword("admin123") // Senha para o admin
+
+	users = []models.User{
+		{ID: generateUserID(), Name: "Enzo Kasma", Email: "enzokasma@gmail.com", Password: hashedPasswordEnzo, Role: "user"},
+		{ID: generateUserID(), Name: "Admin User", Email: "admin@example.com", Password: hashedPasswordAdmin, Role: "admin"},
+	}
+}
+
+func generateUserID() string {
+	id := strconv.Itoa(nextUserID)
+	nextUserID++
+	return id
 }
 
 // Cria uma instância do validador
